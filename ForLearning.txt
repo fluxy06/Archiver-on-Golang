@@ -1,0 +1,196 @@
+// Для конвертации из чанков в 16-ричную систему hex
+type HexChunk string
+
+// Слайс, который хранит символы (hex) (16-ричная система счисления)
+type HexChunks []HexChunk
+
+// Сепарейтор
+const HexChunksSep = " "
+
+func NewBinChunks(str string) HexChunks {
+	parts := strings.Split(str, HexChunksSep)
+
+	res := make(HexChunks, 0, len(parts))
+
+	for _, part := range parts {
+		res = append(res, HexChunk(part))
+	}
+
+	return res
+}
+
+
+
+vlc.go
+
+// Функция конвертации Chunk -> HexChunk
+func (bc BinaryChunk) ToHex() HexChunk {
+	num, err := strconv.ParseUint(string(bc), 2, chunkSize)
+	if err != nil {
+		panic("Произошла ошибка при конвертации в hexchunk" + err.Error())
+	}
+	res := strings.ToUpper(fmt.Sprintf("%02x", num)) // 2h
+
+	if len(res) == 1 {
+		res = "0" + res
+	}
+
+	return HexChunk(res)
+}
+
+
+// Заполняем слайс HexChunk-ами
+func (bcs BinaryChunks) ToHex() HexChunks {
+	//Создаем слайс, принимает значения типа HexChunks, 0 - хз что пока, предпологаю, что 0 - это cap свойство, но очень мало вероятно, далее вместимость массива.
+	res := make(HexChunks, 0, len(bcs))
+	//бежим по кажому элементу и конвертируем с помощью функции chunk -> hexChunk
+	for _, chunk := range bcs {
+		//chunk -> hexchunk
+		hecChunk := chunk.ToHex()
+		res = append(res, hecChunk)
+	}
+	//возвращаем перекодированный слайс
+	return res
+}
+
+
+// Функция конвертации HexChunk -> Binary chunk
+func (hc HexChunk) ToBinary() BinaryChunk {
+	num, err := strconv.ParseUint(string(hc), 16, chunkSize)
+	if err != nil {
+		panic("Произошла непредвиденная ошибка, при конвертации HexChunks -> Binary chunks" + err.Error())
+	}
+	res := strings.ToUpper(fmt.Sprintf("%08b", num))
+
+	return BinaryChunk(res)
+}
+
+
+// Метод для приведения к типу string
+func (strokeChunks HexChunks) ToString() string {
+	//пишем сепарейтор - разделитель в простонародье
+	const sep = " "
+	//обрабатываем случаи когда у нас только 1 чанк типа hex или 0
+	switch len(strokeChunks) {
+	case 0:
+		return ""
+	case 1:
+		return string(strokeChunks[0])
+	}
+	//создаем экземпляр класс strings.Builder
+	var buf strings.Builder
+	//Записываем первый символ
+	buf.WriteString(string(strokeChunks[0]))
+	//Далее бежим по оставшимся, разделяем сепарейтером + символ, конвертированный в тип string
+	for _, chunks := range strokeChunks[1:] {
+		buf.WriteString(sep) // 20 3F 6C...
+		buf.WriteString(string(chunks))
+	}
+	//возвращаем слайс конвертированный и hex16 в string
+	return buf.String()
+}
+
+// Конвертация из HexChunks to Binary chunks, при помощи функции ToBinary() и возврат заполненного слайса в формате 8-ричных бинарных чанков.
+func (hcs HexChunks) ToBinary() BinaryChunks {
+	res := make(BinaryChunks, 0, len(hcs))
+
+	for _, bin := range hcs {
+		binChunk := bin.ToBinary()
+		res = append(res, binChunk)
+	}
+
+	return res
+}
+
+
+// Функция де-кодировки текста: H7 F12 CC J1 -> My name is Ted;
+func Decode(encodedText string) string {
+	res := NewHexChunks(encodedText)
+	// HexChunks кодируем в Binary chunks H1 F2 -> 01110000 10001111
+	bChunks := res.ToBinary()
+	//Binary chunks кодируем в единую строку двоичных символов
+	bString := bChunks.Join()
+	//Строим decoding tree
+	dTree := getEcodingTable().DecodingTree()
+	//Конвертируем информацию из decoding tree в text(string)
+	return exportText(dTree.Decode(bString))
+}
+
+
+// Функция де-кодировки текста: H7 F12 CC J1 -> My name is Ted;
+func Decode(encodedText string) string {
+	res := NewHexChunks(encodedText)
+	// HexChunks кодируем в Binary chunks H1 F2 -> 01110000 10001111
+	bChunks := res.ToBinary()
+	//Binary chunks кодируем в единую строку двоичных символов
+	bString := bChunks.Join()
+	//Строим decoding tree
+	dTree := getEcodingTable().DecodingTree()
+	//Конвертируем информацию из decoding tree в text(string)
+	return exportText(dTree.Decode(bString))
+}
+
+
+// Метод для приведения к типу string
+func (strokeChunks HexChunks) ToString() string {
+	//пишем сепарейтор - разделитель в простонародье
+	const sep = " "
+	//обрабатываем случаи когда у нас только 1 чанк типа hex или 0
+	switch len(strokeChunks) {
+	case 0:
+		return ""
+	case 1:
+		return string(strokeChunks[0])
+	}
+	//создаем экземпляр класс strings.Builder
+	var buf strings.Builder
+	//Записываем первый символ
+	buf.WriteString(string(strokeChunks[0]))
+	//Далее бежим по оставшимся, разделяем сепарейтером + символ, конвертированный в тип string
+	for _, chunks := range strokeChunks[1:] {
+		buf.WriteString(sep) // 20 3F 6C...
+		buf.WriteString(string(chunks))
+	}
+	//возвращаем слайс конвертированный и hex16 в string
+	return buf.String()
+}
+
+
+// Функция конвертации HexChunk -> Binary chunk
+func (hc HexChunk) ToBinary() BinaryChunk {
+	num, err := strconv.ParseUint(string(hc), 16, chunkSize)
+	if err != nil {
+		panic("Произошла непредвиденная ошибка, при конвертации HexChunks -> Binary chunks" + err.Error())
+	}
+	res := strings.ToUpper(fmt.Sprintf("%08b", num))
+
+	return BinaryChunk(res)
+}
+
+
+// Заполняем слайс HexChunk-ами
+func (bcs BinaryChunks) ToHex() HexChunks {
+	//Создаем слайс, принимает значения типа HexChunks, 0 - хз что пока, предпологаю, что 0 - это cap свойство, но очень мало вероятно, далее вместимость массива.
+	res := make(HexChunks, 0, len(bcs))
+	//бежим по кажому элементу и конвертируем с помощью функции chunk -> hexChunk
+	for _, chunk := range bcs {
+		//chunk -> hexchunk
+		hecChunk := chunk.ToHex()
+		res = append(res, hecChunk)
+	}
+	//возвращаем перекодированный слайс
+	return res
+}
+
+
+// Конвертация из HexChunks to Binary chunks, при помощи функции ToBinary() и возврат заполненного слайса в формате 8-ричных бинарных чанков.
+func (hcs HexChunks) ToBinary() BinaryChunks {
+	res := make(BinaryChunks, 0, len(hcs))
+
+	for _, bin := range hcs {
+		binChunk := bin.ToBinary()
+		res = append(res, binChunk)
+	}
+
+	return res
+}
